@@ -1,4 +1,5 @@
 from pygame import *
+import time as t
 
 width = 600
 height = 500
@@ -23,8 +24,60 @@ class GameSprite(sprite.Sprite):
     def draw(self):
         window.blit(self.image, (self.rect.x, self.rect.y))
 
-player_1 = GameSprite("racket.png", 30, 200, 50, 150, 4)
-player_2 = GameSprite("racket.png", 520, 200, 50, 150, 4)
+class Player(GameSprite):
+    def update_1(self):
+        keys_pressed = key.get_pressed()
+
+        if keys_pressed[K_w] == True and self.rect.y > 0:
+            self.rect.y -= self.speed
+        if keys_pressed[K_s] == True and self.rect.bottom < height:
+            self.rect.y += self.speed
+
+    def update_2(self):
+        keys_pressed = key.get_pressed()
+
+        if keys_pressed[K_UP] == True and self.rect.y > 0:
+            self.rect.y -= self.speed
+        if keys_pressed[K_DOWN] == True and self.rect.bottom < height:
+            self.rect.y += self.speed
+
+
+player_1 = Player("racket.png", 0, 200, 50, 150, 4)
+player_2 = Player("racket.png", 550, 200, 50, 150, 4)
+
+player_group = sprite.Group()
+player_group.add(player_1)
+player_group.add(player_2)
+
+class Ball(GameSprite):
+    def __init__(self, img, x, y, w, h, s):
+        super().__init__(img, x, y, w, h, s)
+        self.speed_x = self.speed
+        self.speed_y = self.speed
+
+        self.on_bounce_cooldown = False
+        self.bounce_cd_start = 0
+    
+    def update(self):
+        self.rect.x += self.speed_x
+        self.rect.y += self.speed_y
+
+        if self.rect.y <= 0 or self.rect.bottom >= height:
+            self.speed_y *= -1
+        
+        if self.on_bounce_cooldown == False:
+            if len(sprite.spritecollide(self, player_group, False)) != 0:
+                self.speed_x *= -1
+                self.on_bounce_cooldown = True
+                self.bounce_cd_start = t.time()
+        
+        if self.on_bounce_cooldown == True:
+            if t.time() - self.bounce_cd_start >= 0.5:
+                self.on_bounce_cooldown = False
+        
+        
+
+ball = Ball("tensis_ball.png", 200, 200, 50, 50, 4)
 
 while game_over == False:
     for e in event.get():
@@ -32,8 +85,11 @@ while game_over == False:
             game_over = True
 
     window.fill(background_colour)
-    player_1.draw()
-    player_2.draw()
+    player_group.draw(window)
+    ball.draw()
 
+    player_1.update_1()
+    player_2.update_2()
+    ball.update()
     display.update()
     clock.tick(60)
